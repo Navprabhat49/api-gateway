@@ -9,6 +9,8 @@ on:
 env:
   AZURE_WEBAPP_NAME: api-gateway
   DOCKER_IMAGE: api-gateway
+  CUSTOMER_SERVICE_URL: ${{ vars.CUSTOMER_SERVICE_URL }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL }}
   #AZURE_WEBAPP_PACKAGE_PATH: target/*.jar
 
 jobs:
