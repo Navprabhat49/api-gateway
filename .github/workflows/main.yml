@@ -1,0 +1,51 @@
+name: Publish 🚀
+
+on:
+  workflow_dispatch: 
+  push:
+    branches:
+       - main
+
+env:
+  AZURE_WEBAPP_NAME: api-gateway
+  DOCKER_IMAGE: api-gateway
+  #AZURE_WEBAPP_PACKAGE_PATH: target/*.jar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Login to Docker Hub
+        run: echo "${{secrets.DOCKER_PASSWORD}}" | docker login -u "${{ secrets.DOCKER_USERNAME}}" --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{secrets.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE}}:latest .
+          docker build -t ${{secrets.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE}}:${{github.sha}} .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{secrets.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE}}:latest
+          docker push ${{secrets.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE}}:${{github.sha}}
+
+      - name: Deployment
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{env.AZURE_WEBAPP_NAME}}
+          publish-profile: ${{secrets.AZURE_PUBLISH_PROFILE}}
+          #package: ${{env.AZURE_WEBAPP_PACKAGE_PATH}}
+          images: ${{ secrets.DOCKER_USERNAME }}/${{env.DOCKER_IMAGE}}:latest
